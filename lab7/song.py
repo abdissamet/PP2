@@ -6,7 +6,7 @@ screen=pygame.display.set_mode((800, 600))
 
 player=pygame.image.load(r"lab7/music/musicplayer.jpg")
 mic = pygame.transform.scale( player ,(800 , 600))
-music=mixer.music.load(r"lab7/music/musicc.mp3")
+music=mixer.music.load(r"lab7/music/music.mp3")
 pause= False
 
 while True:
