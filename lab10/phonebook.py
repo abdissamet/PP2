@@ -1,9 +1,10 @@
 import psycopg2
 import csv
-from tabulate import tabulate
+import pandas as pd
+from tabulate import tabulate 
 
-conn = psycopg2.connect(host="localhost", dbname="lab10", user="postgres",
-                        password="Almaty250505", port=5432)
+conn = psycopg2.connect(host="localhost", dbname = "lab10", user = "postgres",
+                        password = "Almaty250505", port = 5432)
 
 cur = conn.cursor()
 
@@ -12,8 +13,19 @@ cur.execute("""CREATE TABLE IF NOT EXISTS phonebook (
       name VARCHAR(255) NOT NULL,
       surname VARCHAR(255) NOT NULL, 
       phone VARCHAR(255) NOT NULL
+
 )
 """)
+#filepath = ":/Users/Admin/.vscode/lab1/lab10/student.csv"  
+#with open(filepath, 'r') as f:
+   
+#    next(f)
+#    reader = csv.reader(f)
+#    for row in reader:
+#        cur.execute("INSERT INTO phonebook (name, surname, phone) VALUES (%s, %s, %s)", (row[0], row[1], row[2]))
+
+#conn.commit()
+
 
 check = True
 command = ''
@@ -41,14 +53,14 @@ while check:
         List of the commands:
         1. Type "i" or "I" in order to INSERT data to the table.
         2. Type "u" or "U" in order to UPDATE data in the table.
-        3. Type "q" or "Q" in order to make specific QUERY in the table.
+        3. Type "q" or "Q" in order to make specidific QUERY in the table.
         4. Type "d" or "D" in order to DELETE data from the table.
         5. Type "f" or "F" in order to close the program.
         6. Type "s" or "S" in order to see the values in the table.
         """)
         command = str(input())
         
-        # insert
+        #insert
         if command == "i" or command == "I":
             print('Type "csv" or "con" to choose option between uploading csv file or typing from console: ')
             command = ''
@@ -63,28 +75,21 @@ while check:
                 if back_com == "back":
                     back = True
             if temp == "csv":
-                filepath = input("Enter a file path with proper extension (e.g., student.csv): ")
-                try:
-                    with open(str(filepath), 'r') as f:
-                        reader = csv.reader(f)
-                        header = next(reader, None)  # Skip header if exists
-                        if header:
-                            for row in reader:
-                                if row:  # Check if row is not empty
-                                    cur.execute("INSERT INTO phonebook (name, surname, phone) VALUES (%s, %s, %s)", (row[0], row[1], row[2]))
-                            conn.commit()
-                        else:
-                            print("CSV file is empty or has an invalid structure.")
-                except FileNotFoundError:
-                    print(f"File '{filepath}' not found. Please check the path.")
-                except Exception as e:
-                    print(f"An error occurred: {e}")
-                
+                filepath = input("Enter a file path with proper extension: ")
+                with open(str(filepath), 'r') as f:
+                # Skip the header row.
+                    reader = csv.reader(f)
+                    next(reader)
+                    for row in reader:
+                        cur.execute("INSERT INTO phonebook (name, surname, phone) VALUES (%s, %s, %s)", (row[0], row[1], row[2]))
+                conn.commit()
+
+                    
                 back_com = str(input('Type "back" in order to return to the list of the commands: '))
                 if back_com == "back":
                     back = True
 
-        # delete
+        #delete
         if command == "d" or command == "D":
             back = False
             command = ''
@@ -95,7 +100,7 @@ while check:
             if back_com == "back":
                 back = True
         
-        # update
+        #update
         if command == 'u' or command == 'U':
             back = False
             command = ''
@@ -113,7 +118,6 @@ while check:
                 surname_var = str(input("Enter surname that you want to change: "))
                 surname_upd = str(input("Enter the new surname: "))
                 cur.execute("UPDATE phonebook SET surname = %s WHERE surname = %s", (surname_upd, surname_var))
-                conn.commit()
                 back_com = str(input('Type "back" in order to return to the list of the commands: '))
                 if back_com == "back":
                     back = True
@@ -121,13 +125,12 @@ while check:
             if temp == "phone":
                 name_var = str(input("Enter phone number that you want to change: "))
                 name_upd = str(input("Enter the new phone number: "))
-                cur.execute("UPDATE phonebook SET phone = %s WHERE phone = %s", (name_upd, name_var))
-                conn.commit()
+                cur.execute("UPDATE phonebook SET phone = %s WHERE phone = %s", (phone_upd, phone_var))
                 back_com = str(input('Type "back" in order to return to the list of the commands: '))
                 if back_com == "back":
                     back = True
         
-        # query
+        #query
         if command == "q" or command == "Q":
             back = False
             command = ''
@@ -169,7 +172,7 @@ while check:
                     back = True
 
         
-        # display
+        #display
         if command == "s" or command == "S":
             back = False
             command = ''
@@ -179,10 +182,11 @@ while check:
             back_com = str(input('Type "back" in order to return to the list of the commands: '))
             if back_com == "back":
                 back = True
-        # finish
+        #finish
         if command == "f" or command == "F":
             command = ''
             check = False
+        
 
 conn.commit()
 cur.close()
