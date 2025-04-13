@@ -4,7 +4,7 @@ import pandas as pd
 from tabulate import tabulate 
 
 conn = psycopg2.connect(host="localhost", dbname = "lab10", user = "postgres",
-                        password = "Almaty250505", port = 5432)
+                        password = "Almaty250505", port = 5433)
 
 cur = conn.cursor()
 
@@ -16,7 +16,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS phonebook (
 
 )
 """)
-#filepath = ":/Users/Admin/.vscode/lab1/lab10/student.csv"  
+#filepath = "C:/Users/Admin/.vscode/lab1/lab10/student.csv"  
 #with open(filepath, 'r') as f:
    
 #    next(f)
