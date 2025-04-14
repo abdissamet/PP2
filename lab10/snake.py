@@ -26,7 +26,7 @@ fps = pygame.time.Clock()
 paused = False 
 
 def insert_score(name, score, level): 
-    conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5433') 
+    conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5432') 
     cur = conn.cursor() 
     insert_query = "INSERT INTO snake_game_scores (player_name, score, level) VALUES (%s, %s, %s)" 
     cur.execute(insert_query, (name, score, level)) 
@@ -35,7 +35,7 @@ def insert_score(name, score, level):
     conn.close() 
  
 def get_scores(name): 
-    conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5433') 
+    conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5432') 
     cur = conn.cursor() 
     query = "SELECT score, level FROM snake_game_scores WHERE player_name = %s ORDER BY score DESC" 
     cur.execute(query, (name,)) 
@@ -46,13 +46,7 @@ def get_scores(name):
  
 player_name = input("Enter your name: ") 
 player_name = player_name.encode('utf-8', 'ignore').decode('utf-8') 
-scores = get_scores(player_name) 
-if scores: 
-    print("Your previous scores:") 
-    for score, level in scores: 
-        print(f"Score: {score}, Level: {level}") 
-    sys.exit()   
- 
+
 def check_collision(pos): 
     if pos[0] < 0 or pos[0] > SCREEN_WIDTH - 10 or pos[1] < 0 or pos[1] > SCREEN_HEIGHT - 10: 
         return True 
@@ -87,7 +81,6 @@ try:
                 elif event.key == pygame.K_p: 
                     paused = not paused 
  
- 
         if not paused: 
             snake_pos.insert(0, list(map(lambda x, y: x + y, snake_pos[0], snake_speed))) 
  
@@ -118,8 +111,7 @@ try:
             pygame.draw.rect(screen, GREEN, pygame.Rect(pos[0], pos[1], 10, 10)) 
  
         food_color = RED if food['weight'] == 1 else (255, 165, 0) 
-        pygame.draw.rect(screen, food_color,
-        pygame.Rect(food['pos'][0], food['pos'][1], 10, 10)) 
+        pygame.draw.rect(screen, food_color, pygame.Rect(food['pos'][0], food['pos'][1], 10, 10)) 
  
         font = pygame.font.SysFont('arial', 20) 
         score_text = font.render(f"Score: {score} Level: {level}", True, WHITE) 
