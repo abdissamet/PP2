@@ -5,7 +5,7 @@ import psycopg2
 
 pygame.init() 
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 600, 400 
+SCREEN_WIDTH, SCREEN_HEIGHT = 600, 500 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT)) 
 
 BLACK = (0, 0, 0) 
