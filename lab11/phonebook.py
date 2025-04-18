@@ -1,85 +1,135 @@
-import psycopg2
-import csv
-from tabulate import tabulate 
+import psycopg2 as pgsql
 
-conn = psycopg2.connect(host="localhost", dbname="lab10", user="postgres",
-                        password="Almaty250505", port=5432)
+conn=pgsql.connect(host="localhost", dbname="lab10", user="postgres", password="Almaty250505", port=5432)
+cur=conn.cursor()
 
-cur = conn.cursor()
 
-cur.execute("""CREATE TABLE IF NOT EXISTS phonebook (
-      user_id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      surname VARCHAR(255) NOT NULL, 
-      phone VARCHAR(255) NOT NULL
-)
-""")
+def createpattern():
+    global query
+    query="""SELECT * FROM PhoneBook
+    WHERE """
+    print(r"Do you want to search by surname(0)/name(1)/break(any num) enter the number:")
+    mode=int(input())
+    if mode==0:
+            query+="surname"
+            print("Enter string")
+            substr=input()
+            print("""Select option:
+            1-surname is equal to string
+            2-surname starts with the string
+            3-surname ends with the string
+            4-surname contains the string""")
+            mode1=int(input())
+            if mode1==1:
+                query+="='{}'".format(substr)
+            elif mode1==2:
+                query+=" iLIKE '{}%'".format(substr)
+            elif mode1==3:
+                query+=" iLIKE '%{}'".format(substr)
+            else:
+                query+=" iLIKE '%{}%'".format(substr)
+    elif mode==1:
+            query+="""name"""
+            print("Enter string")
+            substr=input()
+            print("""Select option:
+            1-name is equal to string
+            2-name starts with the string
+            3-name ends with the string
+            4-name contains the string""")
+            mode1=int(input())
+            if mode1==1:
+                query+="='{}'".format(substr)
+            elif mode1==2:
+                query+=" iLIKE '{}%'".format(substr)
+            elif mode1==3:
+                query+=" iLIKE '%{}'".format(substr)
+            else:
+                query+=" iLIKE '%{}%'".format(substr)
+    else:
+         return "error"
+    return query
 
-def insert_data():
-    print('Type "csv" or "con" to choose option between uploading csv file or typing from console: ')
-    method = input().lower()
-    if method == "con":
-        name = input("Name: ")
-        surname = input("Surname: ")
-        phone = input("Phone: ")
-        cur.execute("INSERT INTO phonebook (name, surname, phone) VALUES (%s, %s, %s)", (name, surname, phone))
-    elif method == "csv":
-        filepath = input("Enter a file path with proper extension: ")
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f)
-            next(reader)  # Skip the header row
-            for row in reader:
-                cur.execute("INSERT INTO phonebook (name, surname, phone) VALUES (%s, %s, %s)", tuple(row))
 
-def update_data():
-    column = input('Type the name of the column that you want to change: ')
-    value = input(f"Enter {column} that you want to change: ")
-    new_value = input(f"Enter the new {column}: ")
-    cur.execute(f"UPDATE phonebook SET {column} = %s WHERE {column} = %s", (new_value, value))
-    conn.commit()
+def insert(surname, name, phone):
+    cur.execute("SELECT count(*) FROM PhoneBook WHERE surname='{}' AND name='{}'".format(surname, name))
+    if cur.fetchone()[0]==0:
+         cur.execute("INSERT INTO PhoneBook (surname, name, phone) VALUES (%s, %s, %s)", (surname, name, phone))
 
-def delete_data():
-    phone = input('Type phone number which you want to delete: ')
-    cur.execute("DELETE FROM phonebook WHERE phone = %s", (phone,))
-    conn.commit()
+    else:
+         cur.execute("""UPDATE PhoneBook
+         SET number={}
+         WHERE surname='{}' AND name='{}'
+         """.format(phone,surname, name))
+
+def loopinsert():
+    banned=[]
+    while True:
+        print("Want to enter a person's data? yes/no")
+        mode=input()
+        if mode == "no":
+             break
+        print("Enter surname, name, phone (separated by spaces):")
+        person = input().split()  # деректерді бір қатарға енгізу
+        
+        if len(person) != 3:  # 3 дерек болуын тексереміз
+            print("Incorrect input format. You must enter surname, name, and phone number.")
+            banned.append(person)
+            continue
+        
+        if not person[2].isdigit():  # Телефон нөмірі сан екенін тексереміз
+            print("Phone number should be digits only.")
+            banned.append(person)
+            continue
+        
+        insert(*person)  # енгізілген деректерді insert функциясына жіберу
     
-def query_data():
-    column = input("Type the name of the column which will be used for searching data: ")
-    value = input(f"Type {column} of the user: ")
-    cur.execute(f"SELECT * FROM phonebook WHERE {column} = %s", (value,))
-    rows = cur.fetchall()
-    print(tabulate(rows, headers=["ID", "Name", "Surname", "Phone"]))
+    if len(banned) > 0:
+        print("This data were not added due to incorrect format:")
+        for i in banned:
+            print(i)
 
-def display_data():
-    cur.execute("SELECT * from phonebook;")
-    rows = cur.fetchall()
-    print(tabulate(rows, headers=["ID", "Name", "Surname", "Phone"], tablefmt='fancy_grid'))
 
-while True:
-    print("""
-    List of the commands:
-    1. Type "i" or "I" in order to INSERT data to the table.
-    2. Type "u" or "U" in order to UPDATE data in the table.
-    3. Type "q" or "Q" in order to make specific QUERY in the table.
-    4. Type "d" or "D" in order to DELETE data from the table.
-    5. Type "s" or "S" in order to see the values in the table.
-    6. Type "f" or "F" in order to close the program.
+def pagination():
+    query=createpattern()
+    if query=="error":
+        return "error"
+    print("Need offset? yes/no:")
+    mode=input()
+    if mode=="yes":
+         print("Enter offset:")
+         offset=int(input())
+         query+=" OFFSET {}".format(offset)
+    print("Need limit? yes/no:")
+    mode=input()
+    if mode=="yes":
+         print("Enter limit:")
+         limit=int(input())
+         query+=" LIMIT {}".format(limit)
+    query +=";"
+    return query
+
+def delete():
+    phone = input("Enter phone to delete: ")
+    cur.execute(f"""
+        DELETE FROM PhoneBook 
+        WHERE phone = '{phone}'
     """)
+    conn.commit()
+    print("Deleted successfully.")
 
-    command = input().lower()
 
-    if command == "i":
-        insert_data()
-    elif command == "u":
-        update_data()
-    elif command == "d":
-        delete_data()
-    elif command == "q":
-        query_data()
-    elif command == "s":
-        display_data()
-    elif command == "f":
-        break
+s1=createpattern()
+if s1!="error":
+     cur.execute(s1+";")
+     print(cur.fetchall())
+insert("Berik", "Serik", 12345)
+loopinsert()
+s1=pagination()
+if s1!="error":
+     cur.execute(s1+";")
+     print(cur.fetchall())
+delete()
 
 conn.commit()
 cur.close()

@@ -2,28 +2,28 @@ import pygame
 import sys 
 import random 
 import psycopg2 
- 
+
 pygame.init() 
- 
+
 SCREEN_WIDTH, SCREEN_HEIGHT = 600, 400 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT)) 
- 
+
 BLACK = (0, 0, 0) 
 WHITE = (255, 255, 255) 
 GREEN = (0, 255, 0) 
 RED = (255, 0, 0) 
- 
+
 snake_pos = [[100, 50], [90, 50], [80, 50]] 
 snake_speed = [10, 0] 
 food = {'pos': [0, 0], 'weight': 1, 'spawn_time': 0} 
 food_spawn = True 
 score = 0 
 level = 1 
-speed_increase = 0.1 
 food_counter = 0   
- 
+
 fps = pygame.time.Clock() 
 paused = False 
+current_fps = 10
 
 def insert_score(name, score, level): 
     conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5432') 
@@ -33,7 +33,7 @@ def insert_score(name, score, level):
     conn.commit() 
     cur.close() 
     conn.close() 
- 
+
 def get_scores(name): 
     conn = psycopg2.connect(dbname='lab10', user='postgres', password='Almaty250505', host='localhost', port='5432') 
     cur = conn.cursor() 
@@ -43,17 +43,33 @@ def get_scores(name):
     cur.close() 
     conn.close() 
     return results 
- 
-player_name = input("Enter your name: ") 
-player_name = player_name.encode('utf-8', 'ignore').decode('utf-8') 
 
-def check_collision(pos): 
+def create_walls(level):
+    walls = []
+    if level == 1:
+        walls.append(pygame.Rect(200, 100, 10, 200))
+        walls.append(pygame.Rect(400, 100, 10, 200))
+    elif level == 2:
+        walls.append(pygame.Rect(150, 50, 10, 300))
+        walls.append(pygame.Rect(450, 50, 10, 300))
+        walls.append(pygame.Rect(250, 150, 200, 10))
+    elif level == 3:
+        walls.append(pygame.Rect(100, 50, 10, 300))
+        walls.append(pygame.Rect(500, 50, 10, 300))
+        walls.append(pygame.Rect(200, 100, 200, 10))
+        walls.append(pygame.Rect(250, 250, 10, 100))
+    return walls
+
+def check_collision(pos, walls):
     if pos[0] < 0 or pos[0] > SCREEN_WIDTH - 10 or pos[1] < 0 or pos[1] > SCREEN_HEIGHT - 10: 
-        return True 
+        return True
     if pos in snake_pos[1:]: 
-        return True 
-    return False 
- 
+        return True
+    for wall in walls:
+        if pygame.Rect(pos[0], pos[1], 10, 10).colliderect(wall):
+            return True
+    return False
+
 def get_random_food(): 
     global food_counter 
     while True: 
@@ -62,9 +78,22 @@ def get_random_food():
             weight = 2 if food_counter >= 2 else 1 
             food_counter = 0 if weight == 2 else food_counter + 1 
             return {'pos': pos, 'weight': weight, 'spawn_time': pygame.time.get_ticks()} 
- 
+
+player_name = input("Enter your name: ") 
+player_name = player_name.encode('utf-8', 'ignore').decode('utf-8') 
+scores = get_scores(player_name) 
+if scores: 
+    print("Your previous scores:") 
+    for score, level in scores: 
+        print(f"Score: {score}, Level: {level}") 
+
+def draw_walls(walls):
+    for wall in walls:
+        pygame.draw.rect(screen, WHITE, wall)
+
 try: 
     while True: 
+        walls = create_walls(level)
         for event in pygame.event.get(): 
             if event.type == pygame.QUIT: 
                 pygame.quit() 
@@ -80,48 +109,50 @@ try:
                     snake_speed = [10, 0] 
                 elif event.key == pygame.K_p: 
                     paused = not paused 
- 
+         
         if not paused: 
             snake_pos.insert(0, list(map(lambda x, y: x + y, snake_pos[0], snake_speed))) 
- 
-            if check_collision(snake_pos[0]): 
+
+            if check_collision(snake_pos[0], walls): 
                 insert_score(player_name, score, level) 
                 pygame.quit() 
                 sys.exit() 
- 
+
             if snake_pos[0] == food['pos']: 
                 score += food['weight'] 
                 if score % 3 == 0: 
                     level += 1 
-                    fps.tick(10 + level * speed_increase) 
+                    current_fps += 2  # жылдамдықты арттыру
                 food_spawn = True 
             else: 
                 snake_pos.pop() 
- 
+
             if food_spawn: 
                 food = get_random_food() 
                 food_spawn = False 
- 
+
             current_time = pygame.time.get_ticks() 
             if current_time - food['spawn_time'] > 10000: 
                 food_spawn = True 
- 
+
         screen.fill(BLACK) 
+        draw_walls(walls)
+
         for pos in snake_pos: 
             pygame.draw.rect(screen, GREEN, pygame.Rect(pos[0], pos[1], 10, 10)) 
- 
+
         food_color = RED if food['weight'] == 1 else (255, 165, 0) 
         pygame.draw.rect(screen, food_color, pygame.Rect(food['pos'][0], food['pos'][1], 10, 10)) 
- 
+
         font = pygame.font.SysFont('arial', 20) 
         score_text = font.render(f"Score: {score} Level: {level}", True, WHITE) 
         screen.blit(score_text, [0, 0]) 
- 
+
         if paused: 
             pause_text = font.render("Paused", True, WHITE) 
             screen.blit(pause_text, [SCREEN_WIDTH // 2 - 30, SCREEN_HEIGHT // 2]) 
- 
+
         pygame.display.flip() 
-        fps.tick(10 + level * speed_increase) 
+        fps.tick(current_fps)
 except SystemExit: 
     pygame.quit()
